@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日記帳</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  margin: 0;
+  background: #f2f2f7;
+  color: #000;
+}
+
+h2 {
+  margin: 0;
+  padding: 15px;
+  font-size: 18px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+#calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding: 10px;
+}
+
+.day {
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px;
+  min-height: 70px;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.header {
+  font-weight: bold;
+  font-size: 12px;
+  color: #888;
+}
+
+.title {
+  font-size: 11px;
+  color: #007aff;
+  margin-top: 4px;
+}
+
+#editor {
+  display: none;
+  padding: 15px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  margin-top: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+textarea {
+  min-height: 120px;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+}
+
+button:first-of-type {
+  background: #007aff;
+  color: white;
+}
+
+button:last-of-type {
+  background: #e5e5ea;
+}
+
+#editor h3 {
+  margin-top: 0;
+}
+
+.button-group {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #f2f2f7;
+  padding: 10px;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.05);
+}
+</style>
+</head>
+
+<body>
+
+<h2 id="month"></h2>
+
+<div id="calendar"></div>
+
+<div id="editor">
+  <h3 id="selectedDate"></h3>
+  <input id="titleInput" placeholder="タイトル">
+  <textarea id="contentInput" placeholder="本文"></textarea>
+
+  <div class="button-group">
+    <button onclick="saveEntry()">保存</button>
+    <button onclick="back()">戻る</button>
+  </div>
+</div>
+
+<script>
+let current = new Date();
+let startX = 0;
+
+function renderCalendar() {
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
+
+  const year = current.getFullYear();
+  const month = current.getMonth();
+
+  document.getElementById("month").innerText = `${year}年 ${month+1}月`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month+1, 0).getDate();
+
+  const days = ["日","月","火","水","木","金","土"];
+  days.forEach(d => {
+    const el = document.createElement("div");
+    el.innerText = d;
+    el.className = "header";
+    cal.appendChild(el);
+  });
+
+  for(let i=0;i<firstDay;i++){
+    cal.appendChild(document.createElement("div"));
+  }
+
+  for(let d=1; d<=lastDate; d++){
+    const el = document.createElement("div");
+    el.className = "day";
+
+    const key = `${year}-${month}-${d}`;
+    const data = JSON.parse(localStorage.getItem(key));
+
+    el.innerHTML = `<div>${d}</div>`;
+    if(data){
+      el.innerHTML += `<div class="title">${data.title}</div>`;
+    }
+
+    el.onclick = () => openEditor(year, month, d);
+    cal.appendChild(el);
+  }
+}
+
+function openEditor(y,m,d){
+  document.getElementById("calendar").style.display = "none";
+  document.getElementById("editor").style.display = "block";
+
+  const key = `${y}-${m}-${d}`;
+  const data = JSON.parse(localStorage.getItem(key)) || {};
+
+  document.getElementById("selectedDate").innerText = `${y}年${m+1}月${d}日`;
+  document.getElementById("titleInput").value = data.title || "";
+  document.getElementById("contentInput").value = data.content || "";
+
+  document.getElementById("editor").dataset.key = key;
+}
+
+function saveEntry(){
+  const key = document.getElementById("editor").dataset.key;
+  const title = document.getElementById("titleInput").value;
+  const content = document.getElementById("contentInput").value;
+
+  localStorage.setItem(key, JSON.stringify({title, content}));
+
+  back();
+}
+
+function back(){
+  document.getElementById("editor").style.display = "none";
+  document.getElementById("calendar").style.display = "grid";
+  renderCalendar();
+}
+
+document.addEventListener("touchstart", e => {
+  startX = e.touches[0].clientX;
+});
+
+document.addEventListener("touchend", e => {
+  let endX = e.changedTouches[0].clientX;
+
+  if(startX - endX > 50){
+    current.setMonth(current.getMonth()+1);
+    renderCalendar();
+  } else if(endX - startX > 50){
+    current.setMonth(current.getMonth()-1);
+    renderCalendar();
+  }
+});
+
+renderCalendar();
+</script>
+
+</body>
+</html>
+
